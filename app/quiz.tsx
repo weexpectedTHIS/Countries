@@ -20,6 +20,12 @@ import AutocompleteInput from '../src/components/AutocompleteInput'
 
 const QUESTION_COUNT = 20
 
+const DIFFICULTY_LABELS: Record<Difficulty, string> = {
+  easy: 'I Want My Mommy',
+  medium: 'Hurt Me Plenty',
+  hard: 'I Am Death Incarnate!',
+}
+
 export default function QuizScreen() {
   const params = useLocalSearchParams()
   const mode = params.mode as Mode
@@ -33,8 +39,8 @@ export default function QuizScreen() {
   const [done, setDone] = useState(false)
 
   useEffect(() => {
-    setQuestions(generateQuestions(mode, QUESTION_COUNT))
-    setAllAnswers(getAllAnswers(mode))
+    setQuestions(generateQuestions(mode, difficulty, QUESTION_COUNT))
+    if (difficulty !== 'easy') setAllAnswers(getAllAnswers(mode))
   }, [])
 
   function handleAnswer(answer: string) {
@@ -55,8 +61,8 @@ export default function QuizScreen() {
   }
 
   function handleRestart() {
-    setQuestions(generateQuestions(mode, QUESTION_COUNT))
-    setAllAnswers(getAllAnswers(mode))
+    setQuestions(generateQuestions(mode, difficulty, QUESTION_COUNT))
+    if (difficulty !== 'easy') setAllAnswers(getAllAnswers(mode))
     setIndex(0)
     setScore(0)
     setSelected(null)
@@ -118,8 +124,9 @@ export default function QuizScreen() {
           <Text style={styles.continent}>{q.country.continent}</Text>
         </View>
 
-        {difficulty === 'multiple-choice' ? (
+        {difficulty === 'easy' ? (
           <MultipleChoiceInput
+            key={index}
             options={q.choices}
             correctAnswer={q.answer}
             selectedAnswer={selected}
@@ -127,6 +134,7 @@ export default function QuizScreen() {
           />
         ) : (
           <AutocompleteInput
+            key={index}
             allOptions={allAnswers}
             correctAnswer={q.answer}
             selectedAnswer={selected}
@@ -179,7 +187,7 @@ function ResultsScreen({
           </Text>
           <Text style={styles.resultsDot}>·</Text>
           <Text style={styles.resultsMetaText}>
-            {difficulty === 'multiple-choice' ? 'Easy' : 'Hard'}
+            {DIFFICULTY_LABELS[difficulty]}
           </Text>
         </View>
 

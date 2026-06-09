@@ -1,13 +1,26 @@
 import { COUNTRIES, type Country } from '../data/countries'
 
 export type Mode = 'country-to-capital' | 'capital-to-country'
-export type Difficulty = 'multiple-choice' | 'autocomplete'
+export type Difficulty = 'easy' | 'medium' | 'hard'
 
 export interface Question {
   country: Country
   prompt: string
   answer: string
   choices: string[]
+}
+
+// Tier weights [tier1, tier2, tier3] per difficulty
+const TIER_WEIGHTS: Record<Difficulty, [number, number, number]> = {
+  easy:   [5, 2, 1],
+  medium: [1, 1, 1],
+  hard:   [1, 2, 5],
+}
+
+// Hard mode deck: cycles all countries before repeating, persists across sessions within page load
+const hardDecks: Record<Mode, { deck: Country[]; offset: number }> = {
+  'country-to-capital': { deck: [], offset: 0 },
+  'capital-to-country': { deck: [], offset: 0 },
 }
 
 function shuffle<T>(arr: T[]): T[] {
@@ -53,15 +66,61 @@ function buildChoices(country: Country, mode: Mode): string[] {
   return shuffle([correct, ...distractors])
 }
 
-export function generateQuestions(mode: Mode, count: number): Question[] {
-  return shuffle(COUNTRIES)
-    .slice(0, count)
-    .map(country => ({
-      country,
-      prompt: getPrompt(country, mode),
-      answer: getAnswer(country, mode),
-      choices: buildChoices(country, mode),
-    }))
+function buildWeightedPool(difficulty: Difficulty): Country[] {
+  const [w1, w2, w3] = TIER_WEIGHTS[difficulty]
+  const pool: Country[] = []
+  for (const c of COUNTRIES) {
+    const weight = c.tier === 1 ? w1 : c.tier === 2 ? w2 : w3
+    for (let i = 0; i < weight; i++) pool.push(c)
+  }
+  return pool
+}
+
+function weightedSample(difficulty: Difficulty, count: number): Country[] {
+  const pool = shuffle(buildWeightedPool(difficulty))
+  const result: Country[] = []
+  const seen = new Set<string>()
+  for (const c of pool) {
+    if (result.length >= count) break
+    if (!seen.has(c.id)) {
+      seen.add(c.id)
+      result.push(c)
+    }
+  }
+  return result
+}
+
+function dealHardBatch(mode: Mode, count: number): Country[] {
+  const state = hardDecks[mode]
+  const result: Country[] = []
+
+  while (result.length < count) {
+    if (state.offset >= state.deck.length) {
+      state.deck = shuffle([...COUNTRIES])
+      state.offset = 0
+    }
+    result.push(state.deck[state.offset])
+    state.offset++
+  }
+
+  return result
+}
+
+export function generateQuestions(mode: Mode, difficulty: Difficulty, count: number): Question[] {
+  let countries: Country[]
+
+  if (difficulty === 'hard') {
+    countries = dealHardBatch(mode, count)
+  } else {
+    countries = weightedSample(difficulty, count)
+  }
+
+  return countries.map(country => ({
+    country,
+    prompt: getPrompt(country, mode),
+    answer: getAnswer(country, mode),
+    choices: difficulty === 'easy' ? buildChoices(country, mode) : [],
+  }))
 }
 
 export function getAllAnswers(mode: Mode): string[] {

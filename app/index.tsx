@@ -1,11 +1,33 @@
 import { useState } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView } from 'react-native'
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Modal, ScrollView } from 'react-native'
 import { router } from 'expo-router'
 import type { Difficulty, Mode } from '../src/game/engine'
 
+const DIFFICULTIES: { value: Difficulty; emoji: string; label: string; desc: string }[] = [
+  {
+    value: 'easy',
+    emoji: '🌍',
+    label: 'I Want My Mommy',
+    desc: 'Multiple choice · familiar countries',
+  },
+  {
+    value: 'medium',
+    emoji: '🗺️',
+    label: 'Hurt Me Plenty',
+    desc: 'Type to search · all countries equally',
+  },
+  {
+    value: 'hard',
+    emoji: '💀',
+    label: 'I Am Death Incarnate!',
+    desc: 'Type to search · obscure countries first',
+  },
+]
+
 export default function HomeScreen() {
   const [mode, setMode] = useState<Mode>('country-to-capital')
-  const [difficulty, setDifficulty] = useState<Difficulty>('multiple-choice')
+  const [difficulty, setDifficulty] = useState<Difficulty>('easy')
+  const [infoVisible, setInfoVisible] = useState(false)
 
   function startQuiz() {
     router.push({ pathname: '/quiz', params: { mode, difficulty } })
@@ -50,33 +72,90 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>FORMAT</Text>
-          <View style={styles.toggle}>
-            <TouchableOpacity
-              style={[styles.toggleOption, difficulty === 'multiple-choice' && styles.toggleOptionActive]}
-              onPress={() => setDifficulty('multiple-choice')}
-              activeOpacity={0.75}
-            >
-              <Text style={[styles.toggleText, difficulty === 'multiple-choice' && styles.toggleTextActive]}>
-                Easy
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.toggleOption, difficulty === 'autocomplete' && styles.toggleOptionActive]}
-              onPress={() => setDifficulty('autocomplete')}
-              activeOpacity={0.75}
-            >
-              <Text style={[styles.toggleText, difficulty === 'autocomplete' && styles.toggleTextActive]}>
-                Hard
-              </Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionLabel}>DIFFICULTY</Text>
+            <TouchableOpacity onPress={() => setInfoVisible(true)} style={styles.infoButton}>
+              <Text style={styles.infoButtonText}>?</Text>
             </TouchableOpacity>
           </View>
+
+          {DIFFICULTIES.map(d => (
+            <TouchableOpacity
+              key={d.value}
+              style={[styles.card, difficulty === d.value && styles.cardActive]}
+              onPress={() => setDifficulty(d.value)}
+              activeOpacity={0.75}
+            >
+              <View style={styles.diffRow}>
+                <Text style={styles.diffEmoji}>{d.emoji}</Text>
+                <View style={styles.diffText}>
+                  <Text style={[styles.cardTitle, difficulty === d.value && styles.cardTitleActive]}>
+                    {d.label}
+                  </Text>
+                  <Text style={[styles.cardDesc, difficulty === d.value && styles.cardDescActive]}>
+                    {d.desc}
+                  </Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+          ))}
         </View>
 
         <TouchableOpacity style={styles.startButton} onPress={startQuiz} activeOpacity={0.85}>
           <Text style={styles.startButtonText}>Start Quiz</Text>
         </TouchableOpacity>
       </View>
+
+      <Modal
+        visible={infoVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setInfoVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setInfoVisible(false)}
+        >
+          <TouchableOpacity activeOpacity={1} style={styles.modalBox}>
+            <Text style={styles.modalTitle}>Difficulty Levels</Text>
+            <ScrollView>
+              <View style={styles.modalItem}>
+                <Text style={styles.modalEmoji}>🌍</Text>
+                <View style={styles.modalItemText}>
+                  <Text style={styles.modalItemTitle}>I Want My Mommy</Text>
+                  <Text style={styles.modalItemDesc}>
+                    Multiple choice with 4 options. Questions lean toward well-known countries and capitals — great for beginners or a relaxed warm-up.
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.modalDivider} />
+              <View style={styles.modalItem}>
+                <Text style={styles.modalEmoji}>🗺️</Text>
+                <View style={styles.modalItemText}>
+                  <Text style={styles.modalItemTitle}>Hurt Me Plenty</Text>
+                  <Text style={styles.modalItemDesc}>
+                    Type to search — no options given. Every country is equally likely to appear. Tests your real knowledge without hints.
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.modalDivider} />
+              <View style={styles.modalItem}>
+                <Text style={styles.modalEmoji}>💀</Text>
+                <View style={styles.modalItemText}>
+                  <Text style={styles.modalItemTitle}>I Am Death Incarnate!</Text>
+                  <Text style={styles.modalItemDesc}>
+                    Type to search with a vengeance. Obscure countries come up far more often, and no country repeats until all 196 have been seen — your progress carries across rounds.
+                  </Text>
+                </View>
+              </View>
+            </ScrollView>
+            <TouchableOpacity style={styles.modalClose} onPress={() => setInfoVisible(false)}>
+              <Text style={styles.modalCloseText}>Got it</Text>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   )
 }
@@ -121,12 +200,31 @@ const styles = StyleSheet.create({
   section: {
     gap: 10,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   sectionLabel: {
     fontSize: 11,
     fontWeight: '700',
     color: '#9CA3AF',
     letterSpacing: 1.2,
-    marginBottom: 2,
+  },
+  infoButton: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 1.5,
+    borderColor: '#9CA3AF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  infoButtonText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#9CA3AF',
+    lineHeight: 14,
   },
   card: {
     backgroundColor: '#FFFFFF',
@@ -155,33 +253,16 @@ const styles = StyleSheet.create({
   cardDescActive: {
     color: '#6366F1',
   },
-  toggle: {
+  diffRow: {
     flexDirection: 'row',
-    backgroundColor: '#E5E7EB',
-    borderRadius: 12,
-    padding: 4,
-  },
-  toggleOption: {
-    flex: 1,
-    paddingVertical: 10,
-    borderRadius: 10,
     alignItems: 'center',
+    gap: 14,
   },
-  toggleOptionActive: {
-    backgroundColor: '#FFFFFF',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
+  diffEmoji: {
+    fontSize: 28,
   },
-  toggleText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#6B7280',
-  },
-  toggleTextActive: {
-    color: '#111827',
+  diffText: {
+    flex: 1,
   },
   startButton: {
     backgroundColor: PRIMARY,
@@ -199,5 +280,67 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#FFFFFF',
     letterSpacing: 0.3,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  modalBox: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+    maxHeight: '80%',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#111827',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  modalItem: {
+    flexDirection: 'row',
+    gap: 14,
+    paddingVertical: 4,
+  },
+  modalEmoji: {
+    fontSize: 28,
+    marginTop: 2,
+  },
+  modalItemText: {
+    flex: 1,
+  },
+  modalItemTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  modalItemDesc: {
+    fontSize: 13,
+    color: '#6B7280',
+    lineHeight: 19,
+  },
+  modalDivider: {
+    height: 1,
+    backgroundColor: '#F3F4F6',
+    marginVertical: 14,
+  },
+  modalClose: {
+    backgroundColor: PRIMARY,
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  modalCloseText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 })

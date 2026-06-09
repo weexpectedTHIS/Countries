@@ -204,6 +204,14 @@ export default function QuizScreen() {
             </Text>
           </TouchableOpacity>
         )}
+
+        {selected !== null && difficulty !== 'easy' && (
+          <View style={[styles.feedback, selected === q.answer ? styles.feedbackCorrect : styles.feedbackWrong]}>
+            <Text style={[styles.feedbackText, selected === q.answer ? styles.feedbackTextCorrect : styles.feedbackTextWrong]}>
+              {selected === q.answer ? '✓ Correct!' : `✗  Correct answer: ${q.answer}`}
+            </Text>
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   )
@@ -354,6 +362,28 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     textTransform: 'uppercase',
     fontWeight: '600',
+  },
+  feedback: {
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  feedbackCorrect: {
+    backgroundColor: '#D1FAE5',
+  },
+  feedbackWrong: {
+    backgroundColor: '#FEE2E2',
+  },
+  feedbackText: {
+    fontSize: 15,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  feedbackTextCorrect: {
+    color: '#065F46',
+  },
+  feedbackTextWrong: {
+    color: '#991B1B',
   },
   nextButton: {
     backgroundColor: PRIMARY,

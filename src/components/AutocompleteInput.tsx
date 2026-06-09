@@ -7,6 +7,8 @@ import {
   StyleSheet,
   Keyboard,
   Platform,
+  type NativeSyntheticEvent,
+  type TextInputKeyPressEventData,
 } from 'react-native'
 
 interface Props {
@@ -18,7 +20,9 @@ interface Props {
 
 export default function AutocompleteInput({ allOptions, correctAnswer, selectedAnswer, onAnswer }: Props) {
   const [query, setQuery] = useState('')
+  const [highlighted, setHighlighted] = useState(0)
   const inputRef = useRef<TextInput>(null)
+  const answeredRef = useRef(false)
 
   const normalize = (s: string) =>
     s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
@@ -30,16 +34,41 @@ export default function AutocompleteInput({ allOptions, correctAnswer, selectedA
 
   const isCorrect = selectedAnswer === correctAnswer
 
+  function handleQueryChange(text: string) {
+    setQuery(text)
+    setHighlighted(0)
+  }
+
   function handleSelect(option: string) {
+    if (answeredRef.current) return
+    answeredRef.current = true
     setQuery(option)
     Keyboard.dismiss()
     onAnswer(option)
   }
 
   function handleDontKnow() {
+    if (answeredRef.current) return
+    answeredRef.current = true
     setQuery('')
     Keyboard.dismiss()
     onAnswer('')
+  }
+
+  function handleKeyPress(e: NativeSyntheticEvent<TextInputKeyPressEventData>) {
+    if (selectedAnswer !== null || filtered.length === 0) return
+    const key = e.nativeEvent.key
+
+    if (key === 'ArrowDown') {
+      e.preventDefault?.()
+      setHighlighted(h => Math.min(h + 1, filtered.length - 1))
+    } else if (key === 'ArrowUp') {
+      e.preventDefault?.()
+      setHighlighted(h => Math.max(h - 1, 0))
+    } else if (key === 'Enter') {
+      e.preventDefault?.()
+      handleSelect(filtered[Math.min(highlighted, filtered.length - 1)])
+    }
   }
 
   return (
@@ -52,7 +81,14 @@ export default function AutocompleteInput({ allOptions, correctAnswer, selectedA
             selectedAnswer !== null && (isCorrect ? styles.inputCorrect : styles.inputWrong),
           ]}
           value={query}
-          onChangeText={selectedAnswer === null ? setQuery : undefined}
+          onChangeText={selectedAnswer === null ? handleQueryChange : undefined}
+          onKeyPress={handleKeyPress}
+          onSubmitEditing={() => {
+            if (selectedAnswer === null && filtered.length > 0) {
+              handleSelect(filtered[Math.min(highlighted, filtered.length - 1)])
+            }
+          }}
+          blurOnSubmit={false}
           placeholder="Start typing..."
           placeholderTextColor="#9CA3AF"
           editable={selectedAnswer === null}
@@ -67,24 +103,22 @@ export default function AutocompleteInput({ allOptions, correctAnswer, selectedA
         )}
       </View>
 
-      {selectedAnswer !== null && (
-        <View style={[styles.feedback, isCorrect ? styles.feedbackCorrect : styles.feedbackWrong]}>
-          <Text style={[styles.feedbackText, isCorrect ? styles.feedbackTextCorrect : styles.feedbackTextWrong]}>
-            {isCorrect ? '✓ Correct!' : `✗  Correct answer: ${correctAnswer}`}
-          </Text>
-        </View>
-      )}
-
       {selectedAnswer === null && filtered.length > 0 && (
         <View style={styles.dropdown}>
           {filtered.map((option, index) => (
             <TouchableOpacity
               key={option}
-              style={[styles.dropdownItem, index < filtered.length - 1 && styles.dropdownItemBorder]}
+              style={[
+                styles.dropdownItem,
+                index < filtered.length - 1 && styles.dropdownItemBorder,
+                index === highlighted && styles.dropdownItemHighlighted,
+              ]}
               onPress={() => handleSelect(option)}
               activeOpacity={0.6}
             >
-              <Text style={styles.dropdownText}>{option}</Text>
+              <Text style={[styles.dropdownText, index === highlighted && styles.dropdownTextHighlighted]}>
+                {option}
+              </Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -98,7 +132,6 @@ export default function AutocompleteInput({ allOptions, correctAnswer, selectedA
     </View>
   )
 }
-
 
 const styles = StyleSheet.create({
   container: {
@@ -120,6 +153,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#111827',
   },
+  inputCorrect: {
+    borderColor: '#10B981',
+    backgroundColor: '#D1FAE5',
+  },
+  inputWrong: {
+    borderColor: '#EF4444',
+    backgroundColor: '#FEE2E2',
+  },
   dontKnowBtn: {
     backgroundColor: '#F3F4F6',
     borderWidth: 2,
@@ -133,37 +174,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: '#6B7280',
-  },
-  inputCorrect: {
-    borderColor: '#10B981',
-    backgroundColor: '#D1FAE5',
-  },
-  inputWrong: {
-    borderColor: '#EF4444',
-    backgroundColor: '#FEE2E2',
-  },
-  feedback: {
-    marginTop: 10,
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-  },
-  feedbackCorrect: {
-    backgroundColor: '#D1FAE5',
-  },
-  feedbackWrong: {
-    backgroundColor: '#FEE2E2',
-  },
-  feedbackText: {
-    fontSize: 15,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  feedbackTextCorrect: {
-    color: '#065F46',
-  },
-  feedbackTextWrong: {
-    color: '#991B1B',
   },
   dropdown: {
     marginTop: 4,
@@ -186,9 +196,16 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
   },
+  dropdownItemHighlighted: {
+    backgroundColor: '#EEF2FF',
+  },
   dropdownText: {
     fontSize: 16,
     color: '#111827',
+  },
+  dropdownTextHighlighted: {
+    color: '#4F46E5',
+    fontWeight: '600',
   },
   noResults: {
     marginTop: 4,

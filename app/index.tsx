@@ -58,7 +58,7 @@ export default function HomeScreen() {
               activeOpacity={0.75}
             >
               <Text style={[styles.toggleText, difficulty === 'multiple-choice' && styles.toggleTextActive]}>
-                Multiple Choice
+                Easy
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -67,7 +67,7 @@ export default function HomeScreen() {
               activeOpacity={0.75}
             >
               <Text style={[styles.toggleText, difficulty === 'autocomplete' && styles.toggleTextActive]}>
-                Type to Search
+                Hard
               </Text>
             </TouchableOpacity>
           </View>

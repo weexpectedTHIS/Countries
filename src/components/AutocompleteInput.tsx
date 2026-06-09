@@ -20,9 +20,12 @@ export default function AutocompleteInput({ allOptions, correctAnswer, selectedA
   const [query, setQuery] = useState('')
   const inputRef = useRef<TextInput>(null)
 
+  const normalize = (s: string) =>
+    s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+
   const filtered =
     query.length > 0
-      ? allOptions.filter(o => o.toLowerCase().includes(query.toLowerCase())).slice(0, 8)
+      ? allOptions.filter(o => normalize(o).includes(normalize(query))).slice(0, 8)
       : []
 
   const isCorrect = selectedAnswer === correctAnswer

@@ -179,7 +179,7 @@ function ResultsScreen({
           </Text>
           <Text style={styles.resultsDot}>·</Text>
           <Text style={styles.resultsMetaText}>
-            {difficulty === 'multiple-choice' ? 'Multiple Choice' : 'Type to Search'}
+            {difficulty === 'multiple-choice' ? 'Easy' : 'Hard'}
           </Text>
         </View>
 

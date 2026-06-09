@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Keyboard,
+  ScrollView,
   type NativeSyntheticEvent,
   type TextInputKeyPressEventData,
 } from 'react-native'
@@ -17,38 +18,50 @@ interface Props {
   onAnswer: (answer: string) => void
 }
 
+const DROPDOWN_ITEM_HEIGHT = 49 // paddingVertical 14 * 2 + fontSize 16 + border 1
+const MAX_VISIBLE = 6
+
+function normalize(s: string): string {
+  return s
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/['']/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+}
+
 export default function AutocompleteInput({ allOptions, correctAnswer, selectedAnswer, onAnswer }: Props) {
   const [query, setQuery] = useState('')
   const [highlighted, setHighlighted] = useState(0)
   const inputRef = useRef<TextInput>(null)
+  const dropdownRef = useRef<ScrollView>(null)
   const answeredRef = useRef(false)
 
-  const normalize = (s: string) =>
-    s
-      .normalize('NFD')
-      .replace(/[̀-ͯ]/g, '')
-      .toLowerCase()
-      .replace(/['’]/g, '')
-      .replace(/[^a-z0-9]+/g, ' ')
-      .trim()
+  const isCorrect = selectedAnswer === correctAnswer
 
   const tokens = normalize(query).split(' ').filter(Boolean)
 
-  const filtered =
-    tokens.length > 0
-      ? allOptions
-          .filter(o => {
-            const n = normalize(o)
-            return tokens.every(t => n.includes(t))
-          })
-          .slice(0, 8)
-      : []
-
-  const isCorrect = selectedAnswer === correctAnswer
+  const filtered: string[] = (() => {
+    if (tokens.length === 0) return []
+    const matches = allOptions.filter(o => {
+      const n = normalize(o)
+      return tokens.every(t => n.includes(t))
+    })
+    // Prefix matches first
+    const firstToken = tokens[0]
+    return matches.sort((a, b) => {
+      const aStarts = normalize(a).startsWith(firstToken)
+      const bStarts = normalize(b).startsWith(firstToken)
+      if (aStarts === bStarts) return 0
+      return aStarts ? -1 : 1
+    })
+  })()
 
   function handleQueryChange(text: string) {
     setQuery(text)
     setHighlighted(0)
+    dropdownRef.current?.scrollTo({ y: 0, animated: false })
   }
 
   function handleSelect(option: string) {
@@ -67,21 +80,31 @@ export default function AutocompleteInput({ allOptions, correctAnswer, selectedA
     onAnswer('')
   }
 
+  function scrollToHighlighted(index: number) {
+    dropdownRef.current?.scrollTo({ y: index * DROPDOWN_ITEM_HEIGHT, animated: true })
+  }
+
   function handleKeyPress(e: NativeSyntheticEvent<TextInputKeyPressEventData>) {
     if (selectedAnswer !== null || filtered.length === 0) return
     const key = e.nativeEvent.key
 
     if (key === 'ArrowDown') {
       e.preventDefault?.()
-      setHighlighted(h => Math.min(h + 1, filtered.length - 1))
+      const next = Math.min(highlighted + 1, filtered.length - 1)
+      setHighlighted(next)
+      scrollToHighlighted(next)
     } else if (key === 'ArrowUp') {
       e.preventDefault?.()
-      setHighlighted(h => Math.max(h - 1, 0))
+      const prev = Math.max(highlighted - 1, 0)
+      setHighlighted(prev)
+      scrollToHighlighted(prev)
     } else if (key === 'Enter') {
       e.preventDefault?.()
       handleSelect(filtered[Math.min(highlighted, filtered.length - 1)])
     }
   }
+
+  const dropdownHeight = Math.min(filtered.length, MAX_VISIBLE) * DROPDOWN_ITEM_HEIGHT
 
   return (
     <View style={styles.container}>
@@ -116,7 +139,14 @@ export default function AutocompleteInput({ allOptions, correctAnswer, selectedA
       </View>
 
       {selectedAnswer === null && filtered.length > 0 && (
-        <View style={styles.dropdown}>
+        <ScrollView
+          ref={dropdownRef}
+          style={[styles.dropdown, { height: dropdownHeight }]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={filtered.length > MAX_VISIBLE}
+          scrollEnabled={filtered.length > MAX_VISIBLE}
+          nestedScrollEnabled
+        >
           {filtered.map((option, index) => (
             <TouchableOpacity
               key={option}
@@ -133,7 +163,7 @@ export default function AutocompleteInput({ allOptions, correctAnswer, selectedA
               </Text>
             </TouchableOpacity>
           ))}
-        </View>
+        </ScrollView>
       )}
 
       {selectedAnswer === null && tokens.length > 0 && filtered.length === 0 && (
@@ -203,6 +233,8 @@ const styles = StyleSheet.create({
   dropdownItem: {
     paddingVertical: 14,
     paddingHorizontal: 16,
+    height: DROPDOWN_ITEM_HEIGHT,
+    justifyContent: 'center',
   },
   dropdownItemBorder: {
     borderBottomWidth: 1,

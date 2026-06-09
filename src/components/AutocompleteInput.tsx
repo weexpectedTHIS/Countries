@@ -36,23 +36,36 @@ export default function AutocompleteInput({ allOptions, correctAnswer, selectedA
     onAnswer(option)
   }
 
+  function handleDontKnow() {
+    setQuery('')
+    Keyboard.dismiss()
+    onAnswer('')
+  }
+
   return (
     <View style={styles.container}>
-      <TextInput
-        ref={inputRef}
-        style={[
-          styles.input,
-          selectedAnswer !== null && (isCorrect ? styles.inputCorrect : styles.inputWrong),
-        ]}
-        value={query}
-        onChangeText={selectedAnswer === null ? setQuery : undefined}
-        placeholder="Start typing..."
-        placeholderTextColor="#9CA3AF"
-        editable={selectedAnswer === null}
-        autoCorrect={false}
-        autoCapitalize="words"
-        autoFocus={Platform.OS !== 'web'}
-      />
+      <View style={styles.inputRow}>
+        <TextInput
+          ref={inputRef}
+          style={[
+            styles.input,
+            selectedAnswer !== null && (isCorrect ? styles.inputCorrect : styles.inputWrong),
+          ]}
+          value={query}
+          onChangeText={selectedAnswer === null ? setQuery : undefined}
+          placeholder="Start typing..."
+          placeholderTextColor="#9CA3AF"
+          editable={selectedAnswer === null}
+          autoCorrect={false}
+          autoCapitalize="words"
+          autoFocus={Platform.OS !== 'web'}
+        />
+        {selectedAnswer === null && (
+          <TouchableOpacity style={styles.dontKnowBtn} onPress={handleDontKnow} activeOpacity={0.7}>
+            <Text style={styles.dontKnowText}>I don't know</Text>
+          </TouchableOpacity>
+        )}
+      </View>
 
       {selectedAnswer !== null && (
         <View style={[styles.feedback, isCorrect ? styles.feedbackCorrect : styles.feedbackWrong]}>
@@ -86,11 +99,18 @@ export default function AutocompleteInput({ allOptions, correctAnswer, selectedA
   )
 }
 
+
 const styles = StyleSheet.create({
   container: {
     marginTop: 8,
   },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    gap: 8,
+  },
   input: {
+    flex: 1,
     backgroundColor: '#FFFFFF',
     borderWidth: 2,
     borderColor: '#E5E7EB',
@@ -99,6 +119,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     fontSize: 16,
     color: '#111827',
+  },
+  dontKnowBtn: {
+    backgroundColor: '#F3F4F6',
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dontKnowText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#6B7280',
   },
   inputCorrect: {
     borderColor: '#10B981',

@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   Keyboard,
-  Platform,
   type NativeSyntheticEvent,
   type TextInputKeyPressEventData,
 } from 'react-native'
@@ -25,11 +24,24 @@ export default function AutocompleteInput({ allOptions, correctAnswer, selectedA
   const answeredRef = useRef(false)
 
   const normalize = (s: string) =>
-    s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+    s
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
+      .toLowerCase()
+      .replace(/['’]/g, '')
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim()
+
+  const tokens = normalize(query).split(' ').filter(Boolean)
 
   const filtered =
-    query.length > 0
-      ? allOptions.filter(o => normalize(o).includes(normalize(query))).slice(0, 8)
+    tokens.length > 0
+      ? allOptions
+          .filter(o => {
+            const n = normalize(o)
+            return tokens.every(t => n.includes(t))
+          })
+          .slice(0, 8)
       : []
 
   const isCorrect = selectedAnswer === correctAnswer
@@ -94,7 +106,7 @@ export default function AutocompleteInput({ allOptions, correctAnswer, selectedA
           editable={selectedAnswer === null}
           autoCorrect={false}
           autoCapitalize="words"
-          autoFocus={Platform.OS !== 'web'}
+          autoFocus
         />
         {selectedAnswer === null && (
           <TouchableOpacity style={styles.dontKnowBtn} onPress={handleDontKnow} activeOpacity={0.7}>
@@ -124,7 +136,7 @@ export default function AutocompleteInput({ allOptions, correctAnswer, selectedA
         </View>
       )}
 
-      {selectedAnswer === null && query.length > 0 && filtered.length === 0 && (
+      {selectedAnswer === null && tokens.length > 0 && filtered.length === 0 && (
         <View style={styles.noResults}>
           <Text style={styles.noResultsText}>No matches</Text>
         </View>

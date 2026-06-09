@@ -40,6 +40,12 @@ export default function HomeScreen() {
           <Text style={styles.title}>Countries</Text>
           <Text style={styles.subtitle}>& Capitals</Text>
           <Text style={styles.tagline}>20 questions · all nations</Text>
+          <TouchableOpacity
+            onPress={() => router.push('/history')}
+            style={styles.historyBtn}
+          >
+            <Text style={styles.historyBtnText}>🕐 History</Text>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.section}>
@@ -178,6 +184,19 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
     paddingBottom: 8,
+    position: 'relative',
+  },
+  historyBtn: {
+    position: 'absolute',
+    top: 4,
+    right: 0,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+  },
+  historyBtnText: {
+    fontSize: 13,
+    color: '#9CA3AF',
+    fontWeight: '600',
   },
   title: {
     fontSize: 42,

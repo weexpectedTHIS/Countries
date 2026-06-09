@@ -15,6 +15,13 @@ import {
   type Mode,
   type Question,
 } from '../src/game/engine'
+import {
+  ENGINE_VERSION,
+  createGame,
+  getGame,
+  updateGame,
+  restoreQuestions,
+} from '../src/game/storage'
 import MultipleChoiceInput from '../src/components/MultipleChoiceInput'
 import AutocompleteInput from '../src/components/AutocompleteInput'
 
@@ -28,45 +35,91 @@ const DIFFICULTY_LABELS: Record<Difficulty, string> = {
 
 export default function QuizScreen() {
   const params = useLocalSearchParams()
-  const mode = params.mode as Mode
-  const difficulty = params.difficulty as Difficulty
+  const gameIdParam = params.gameId as string | undefined
+  const modeParam = params.mode as Mode | undefined
+  const diffParam = params.difficulty as Difficulty | undefined
 
+  const [gid, setGid] = useState<string | null>(null)
+  const [mode, setMode] = useState<Mode>('country-to-capital')
+  const [difficulty, setDifficulty] = useState<Difficulty>('easy')
   const [questions, setQuestions] = useState<Question[]>([])
   const [allAnswers, setAllAnswers] = useState<string[]>([])
   const [index, setIndex] = useState(0)
   const [score, setScore] = useState(0)
   const [selected, setSelected] = useState<string | null>(null)
+  const [selectedAnswers, setSelectedAnswers] = useState<(string | null)[]>([])
   const [done, setDone] = useState(false)
 
   useEffect(() => {
-    setQuestions(generateQuestions(mode, difficulty, QUESTION_COUNT))
-    if (difficulty !== 'easy') setAllAnswers(getAllAnswers(mode))
+    if (gameIdParam) {
+      const saved = getGame(gameIdParam)
+      if (!saved || saved.engineVersion !== ENGINE_VERSION) {
+        router.replace('/')
+        return
+      }
+      const qs = restoreQuestions(saved)
+      setMode(saved.mode)
+      setDifficulty(saved.difficulty)
+      setGid(saved.id)
+      setQuestions(qs)
+      setIndex(saved.currentIndex)
+      setScore(saved.score)
+      setSelectedAnswers(saved.selectedAnswers)
+      setSelected(saved.selectedAnswers[saved.currentIndex] ?? null)
+      setDone(saved.completed)
+      if (saved.difficulty !== 'easy') setAllAnswers(getAllAnswers(saved.mode))
+    } else if (modeParam && diffParam) {
+      const qs = generateQuestions(modeParam, diffParam, QUESTION_COUNT)
+      const saved = createGame(modeParam, diffParam, qs)
+      setMode(modeParam)
+      setDifficulty(diffParam)
+      setGid(saved.id)
+      setQuestions(qs)
+      setSelectedAnswers(new Array(QUESTION_COUNT).fill(null))
+      if (diffParam !== 'easy') setAllAnswers(getAllAnswers(modeParam))
+      // Replace URL so refresh reloads via gameId
+      router.replace({ pathname: '/quiz', params: { gameId: saved.id } })
+    } else {
+      router.replace('/')
+    }
   }, [])
 
   function handleAnswer(answer: string) {
     if (selected !== null) return
     setSelected(answer)
-    if (answer === questions[index].answer) {
-      setScore(s => s + 1)
-    }
+    const correct = answer === questions[index].answer
+    const newScore = score + (correct ? 1 : 0)
+    setScore(newScore)
+    const newAnswers = [...selectedAnswers]
+    newAnswers[index] = answer
+    setSelectedAnswers(newAnswers)
+    if (gid) updateGame(gid, { selectedAnswers: newAnswers, score: newScore })
   }
 
   function handleNext() {
     if (index + 1 >= QUESTION_COUNT) {
       setDone(true)
+      if (gid) updateGame(gid, { completed: true })
     } else {
-      setIndex(i => i + 1)
+      const newIndex = index + 1
+      setIndex(newIndex)
       setSelected(null)
+      if (gid) updateGame(gid, { currentIndex: newIndex })
     }
   }
 
   function handleRestart() {
-    setQuestions(generateQuestions(mode, difficulty, QUESTION_COUNT))
-    if (difficulty !== 'easy') setAllAnswers(getAllAnswers(mode))
+    const qs = generateQuestions(mode, difficulty, QUESTION_COUNT)
+    const saved = createGame(mode, difficulty, qs)
+    setGid(saved.id)
+    setQuestions(qs)
     setIndex(0)
     setScore(0)
     setSelected(null)
+    setSelectedAnswers(new Array(QUESTION_COUNT).fill(null))
     setDone(false)
+    if (difficulty !== 'easy') setAllAnswers(getAllAnswers(mode))
+    router.replace({ pathname: '/quiz', params: { gameId: saved.id } })
   }
 
   if (questions.length === 0) {
@@ -87,7 +140,7 @@ export default function QuizScreen() {
         mode={mode}
         difficulty={difficulty}
         onRestart={handleRestart}
-        onHome={() => router.back()}
+        onHome={() => router.replace('/')}
       />
     )
   }
@@ -99,7 +152,7 @@ export default function QuizScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.topBar}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+        <TouchableOpacity onPress={() => router.replace('/')} style={styles.backBtn}>
           <Text style={styles.backText}>← Back</Text>
         </TouchableOpacity>
         <Text style={styles.counter}>{index + 1} / {QUESTION_COUNT}</Text>

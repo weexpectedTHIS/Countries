@@ -121,7 +121,9 @@ export default function QuizScreen() {
             {isCountryToCapital ? 'What is the capital of' : 'Which country has the capital'}
           </Text>
           <Text style={styles.questionPrompt}>{q.prompt}?</Text>
-          <Text style={styles.continent}>{q.country.continent}</Text>
+          {difficulty !== 'hard' && (
+            <Text style={styles.continent}>{q.country.continent}</Text>
+          )}
         </View>
 
         {difficulty === 'easy' ? (

@@ -14,7 +14,7 @@
       "expo-router"
     ],
     "experiments": {
-      "baseUrl": "/Countries"
+      "baseUrl": "/countries"
     }
   }
 }

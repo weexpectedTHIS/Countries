@@ -1,0 +1,12 @@
+pages:
+  stage: deploy
+  image: node:22
+  script:
+    - npm ci
+    - npx expo export --platform web
+    - mv dist public
+  artifacts:
+    paths:
+      - public
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH

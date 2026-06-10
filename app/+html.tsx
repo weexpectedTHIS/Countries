@@ -10,7 +10,11 @@ export default function Root({ children }: PropsWithChildren) {
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-        <title>Countries & Capitals</title>
+        <title>Countries &amp; Capitals — Geography Quiz</title>
+        <meta name="description" content="Test your knowledge of world capitals. 196 countries, three difficulty levels." />
+        <meta property="og:title" content="Countries &amp; Capitals — Geography Quiz" />
+        <meta property="og:description" content="Test your knowledge of world capitals. 196 countries, three difficulty levels." />
+        <meta property="og:type" content="website" />
         <ScrollViewStyleReset />
         <link rel="icon" type="image/svg+xml" href={FAVICON} />
       </head>
